@@ -18,6 +18,7 @@ jobs:
     env:
       TOOLS_COMMIT: 949b8dc8097c64cd8d8325082809e07cffefbc61
       PACKAGE: linux-omarchy-aarch64
+      MIRROR: edge
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -41,15 +42,16 @@ jobs:
           ( while true; do date -u +%FT%TZ; free -m; df -Pk / "$RUNNER_TEMP";
               sleep 30; done ) > "$RUNNER_TEMP/baseline/resources.log" 2>&1 &
           echo "start $(date -u +%FT%TZ)" > "$RUNNER_TEMP/baseline/timing.txt"
-          CONTAINER_ENGINE=docker bin/build --mirror stable --arch aarch64 \
+          CONTAINER_ENGINE=docker bin/build --mirror "$MIRROR" --arch aarch64 \
             --package "$PACKAGE" 2>&1 | tee "$RUNNER_TEMP/baseline/build.log"
+          ls build-output/"$MIRROR"/aarch64/*.pkg.tar.zst
           echo "end $(date -u +%FT%TZ)" >> "$RUNNER_TEMP/baseline/timing.txt"
 
       - name: Summarize
         if: always()
         run: |
           echo "end-or-stop $(date -u +%FT%TZ)" >> "$RUNNER_TEMP/baseline/timing.txt"
-          { df -Pk; docker system df; ls -l tools/build-output/stable/aarch64; } \
+          { df -Pk; docker system df; ls -l tools/build-output/"$MIRROR"/aarch64; } \
             > "$RUNNER_TEMP/baseline/final.txt" 2>&1 || true
           grep ' /$' "$RUNNER_TEMP/baseline/resources.log" | sort -k3 -n | tail -1 \
             > "$RUNNER_TEMP/baseline/peak-root-used.txt" || true
